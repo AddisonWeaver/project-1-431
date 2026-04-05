@@ -1,0 +1,41 @@
+---
+title: "Project 1"
+author: "Addie Weaver"
+format: html
+editor: source
+embed-resources: true
+code-tools: true
+code-fold: true
+execute: 
+  echo: true
+  warning: false
+  message: false
+---
+
+## Draft Report
+
+For checkpoint 1, I chose to look into the geopolitical data set. This data set is about many countries and their type of government. There are a lot of variables with a total of 43 that describe a country's government type, leaders, and actions it takes like elections. Overall, there is a mix of types of variables, some being years (date values) some being logical/Boolean values, and some even being descriptions in the form of strings. There are a total of 14,768 rows which each row consisting of a country for a different year 1950 to 2020 so many country duplicates. It appears that those who organized this data, wanted to find answers to countries switching their government type over time, so the data was organized to have country duplicates.
+
+Some cleaning that took place to the data was cleaning the names of variables from a different set as well as only selecting these specific 43 variables. They also added the election month as ? if the original data set didn't have a election month. In addition, they split up a variable election_month into a year and a month parts using separate_wider_regex, took the electoral category number to represent types of elections as a string vs a index, as well as trimmed the election_month variable to not include extra spaces and take extra information in the string to represent new variables that existed in the same variable.
+
+Two research questions that could be addressed with these data are "How many female president or monach leaders have led a country over time?" using is_female_monarch, years, is_female_president as well as "How often does regime change happen in colony territories over time?" using is_colony, years, has_regime_change_lag, colony_of etc.
+
+A esearch questions that could be addressed with outside data could be "How often during the Cold War were countries having a to communism regime change or a communism to other regime change?" that could using some data from this data set like year, is_communist, etc and then outside data through Cold War historical data such as highlighting leaders, wars/battles that took place, and even revolutions that took place through outside data. Another research question could be "How often presidential systems host elections & what kind of elections?" which could use data from is_presidental & election_system, but also other data concerning voting rights in those countries, voting parties, voting ages, and other factors to elections.
+
+```{r}
+
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+library(tidyverse)
+```
+
+```{r}
+q_1<- democracy_data |>
+  select(is_female_monarch, is_female_president, year, country_name)
+
+q_2<- democracy_data |>
+  select(is_colony, year, country_name, has_regime_change_lag, colony_of)
+```
+
+![](research 1-20.jpg)
+
+![](research 2-21.jpg)
