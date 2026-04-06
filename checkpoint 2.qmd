@@ -1,10 +1,18 @@
 ---
 title: "Project 1- checkpoint 2"
+author: "Addie Weaver"
 format: html
-editor: visual
+editor: source
+embed-resources: true
+code-tools: true
+code-fold: true
+execute: 
+  echo: true
+  warning: false
+  message: false
 ---
 
-## Quarto
+## Quarto    
 
 Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
 
