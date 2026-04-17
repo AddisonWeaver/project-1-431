@@ -16,6 +16,10 @@ execute:
 democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
 library(tidyverse)
 library(gt)
+library(glue)
+library(httr)
+library(tidyjson)
+library(jsonlite)
 ```
 
 ## Data Sources
@@ -23,6 +27,24 @@ library(gt)
 ### #1
 
 ```{r}
+api_key <- "0FimbRUwssZ5BiS0hkHIfUqPXYvtGuFafwlskcZE" 
+
+
+get_gdp <- function(country, key = api_key)
+  {
+  
+  url <- glue("https://api.api-ninjas.com/v1/country?name={country};X-Api-Key={api_key}")
+  my_data <- safely(fromJSON)(url)
+  
+  if (is.null(my_data$result)) {
+    return(NA)
+  } else {
+    return(my_data$result$gdp)
+  }
+}
+
+get_gdp("GIB",api_key) #test for GIB
+
 
 ```
 
@@ -31,13 +53,114 @@ Descript Here
 ### #2
 
 ```{r}
+api_key <- "0FimbRUwssZ5BiS0hkHIfUqPXYvtGuFafwlskcZE" 
+
+
+get_gdp <- function(country, key = api_key)
+  {
+  
+  url <- glue("https://api.api-ninjas.com/v1/country?name={country};X-Api-Key={api_key}")
+  my_data <- safely(fromJSON)(url)
+  
+  if (is.null(my_data$result)) {
+    return(NA)
+  } else {
+    return(my_data$result$gdp)
+  }
+}
+
+get_gdp("GIB",api_key) #test for GIB
+
 
 ```
 
 Descript Here
 
+Joins
+```{r}
+# add noc codes to original dataset
+democracy_data <- democracy_data |>
+  mutate(
+    noc = case_when(
+      country_name == "Anguilla" ~ "AIA",
+      country_name == "Bermuda" ~ "BER",
+      country_name == "British Virgin Islands" ~ "VGB",
+      country_name == "Cayman Islands" ~ "CYM",
+      country_name == "Cook Islands" ~ "COK",
+      country_name == "Gibraltar" ~ "GIB",
+      country_name == "Turks and Caicos" ~ "TCA",
+      country_name == "United Kingdom" ~ "GBR",
+      country_name == "Aruba" ~ "ARU",
+      country_name == "Curacao" ~ "CUW",
+      TRUE ~ NA_character_
+    )
+  )
+
+
+# pull just the noc vector
+top_female_leader_noc <- top_female_leader_countries |>
+  pull(noc)
+
+top_female_leader_noc
+
+# make GDP dataframe
+gdp_df <- tibble(
+  noc = top_female_leader_noc,
+  gdp = map_dbl(top_female_leader_noc, get_gdp)
+)
+
+gdp_df
+
+# join GDP back onto original democracy data
+top_female_leader_gdp <- democracy_data |>
+  filter(noc %in% top_female_leader_noc) |>
+  left_join(gdp_df, by = "noc")
+
+top_female_leader_gdp
+```
+
 ## Data Summaries
 
-### #1
+### \# Research Question: GDP For Top Countries With Most Female Leaders Over Time
 
-### #2
+```{r}
+
+# Female Leader Summarie gibberish
+female_leader = is_female_monarch == TRUE | is_female_president == TRUE,
+# get top 10 countries with the most female leaders
+top_female_leader_countries <- democracy_data |>
+  group_by(country_name, noc) |>
+  summarize(
+    n_female_leaders = sum(female_leader, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  slice_max(n_female_leaders, n = 10, with_ties = FALSE)
+
+top_female_leader_countries
+
+
+```
+
+```{r}
+data_list <- top_female_leader_countries |>
+  map(get_gdp)
+
+gdp_df <- data_list |>
+  set_names(top_female_leader_countries) |>
+  bind_rows(
+    .id = "noc"
+  ) 
+
+gdp_df |> head()
+
+
+top_female_leader_gdp <- democracy_data |>
+  filter(noc %in% top_female_leader_countries) |>
+  left_join(gdp_df, by = "noc")
+```
+
+### #2 Research Question: ........
+
+```{r}
+
+```
