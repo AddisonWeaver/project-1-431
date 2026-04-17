@@ -28,23 +28,63 @@ library(jsonlite)
 
 ```{r}
 api_key <- "0FimbRUwssZ5BiS0hkHIfUqPXYvtGuFafwlskcZE" 
-
+# link to this data set https://api-ninjas.com/api/gdp
 
 get_gdp <- function(country, key = api_key)
   {
   
-  url <- glue("https://api.api-ninjas.com/v1/country?name={country};X-Api-Key={api_key}")
+  url <- glue("https://api.api-ninjas.com/v1/gdp?country={country};X-Api-Key={api_key}")
   my_data <- safely(fromJSON)(url)
   
-  if (is.null(my_data$result)) {
-    return(NA)
+  res <- my_data$result
+  
+  #had to change it to length & null cause i kept getting one or the other
+   if (is.null(res) || length(res) == 0) {
+    return(tibble(
+      country_code = character(),
+      year = integer(),
+      gdp = double()
+    ))
   } else {
-    return(my_data$result$gdp)
+    return( #made a tibble for the 3 pieces of data I got from the api
+      as_tibble(res) |>
+        select(country, year, gdp_nominal) |>
+        mutate(
+          country_code = country,
+          year = as.integer(year),
+          gdp = as.numeric(gdp_nominal)
+        ) |>
+        select(country_code, year, gdp)
+    )
   }
 }
 
-get_gdp("GIB",api_key) #test for GIB
+```
 
+## Data Joins Democracy & GDP For DataSet 1
+```{r}
+
+
+#vector of the country_codes
+# get unique country codes only
+country_codes <- democracy_data |>
+  distinct(country_code) |>
+  pull(country_code)
+
+# pull GDP data for all available countries
+gdp_df <- country_codes |>
+  map(get_gdp) |>
+  bind_rows()
+
+#gdp_df
+
+democracy_gdp <- democracy_data |>
+  mutate(
+    female_leader = is_female_monarch == TRUE | is_female_president == TRUE
+  ) |>
+  left_join(gdp_df, by = c("country_code", "year"))
+
+democracy_gdp
 
 ```
 
@@ -53,70 +93,55 @@ Descript Here
 ### #2
 
 ```{r}
-api_key <- "0FimbRUwssZ5BiS0hkHIfUqPXYvtGuFafwlskcZE" 
-
-
-get_gdp <- function(country, key = api_key)
-  {
+get_unemployment <- function(country, key = api_key)
+{
   
-  url <- glue("https://api.api-ninjas.com/v1/country?name={country};X-Api-Key={api_key}")
+  url <- glue("https://api.api-ninjas.com/v1/unemployment?country={country};X-Api-Key={key}")
   my_data <- safely(fromJSON)(url)
   
-  if (is.null(my_data$result)) {
-    return(NA)
+  res <- my_data$result
+  
+  if (is.null(res) || length(res) == 0) {
+    return(tibble(
+      country_code = character(),
+      year = integer(),
+      unemployment_rate = double()
+    ))
   } else {
-    return(my_data$result$gdp)
+    return(
+      as_tibble(res) |> #made a tibble using the 3 piences of data from api
+        select(country, year, unemployment_rate) |>
+        mutate(
+          country_code = country,
+          year = as.integer(year),
+          unemployment_rate = as.numeric(unemployment_rate)
+        ) |>
+        select(country_code, year, unemployment_rate)
+    )
   }
 }
 
-get_gdp("GIB",api_key) #test for GIB
-
-
 ```
+## Data Joins Democracy & Unenployment For DataSet 2
+```{r}
+country_codes <- democracy_data |>
+  distinct(country_code) |>
+  pull(country_code)
+
+unemp_df <- country_codes |>
+  map(get_unemployment) |>
+  bind_rows()
+
+democracy_unemp <- democracy_data |>
+  left_join(unemp_df, by = c("country_code", "year"))
+
+democracy_unemp
+```
+
 
 Descript Here
 
-Joins
-```{r}
-# add noc codes to original dataset
-democracy_data <- democracy_data |>
-  mutate(
-    noc = case_when(
-      country_name == "Anguilla" ~ "AIA",
-      country_name == "Bermuda" ~ "BER",
-      country_name == "British Virgin Islands" ~ "VGB",
-      country_name == "Cayman Islands" ~ "CYM",
-      country_name == "Cook Islands" ~ "COK",
-      country_name == "Gibraltar" ~ "GIB",
-      country_name == "Turks and Caicos" ~ "TCA",
-      country_name == "United Kingdom" ~ "GBR",
-      country_name == "Aruba" ~ "ARU",
-      country_name == "Curacao" ~ "CUW",
-      TRUE ~ NA_character_
-    )
-  )
 
-
-# pull just the noc vector
-top_female_leader_noc <- top_female_leader_countries |>
-  pull(noc)
-
-top_female_leader_noc
-
-# make GDP dataframe
-gdp_df <- tibble(
-  noc = top_female_leader_noc,
-  gdp = map_dbl(top_female_leader_noc, get_gdp)
-)
-
-gdp_df
-
-# join GDP back onto original democracy data
-top_female_leader_gdp <- democracy_data |>
-  filter(noc %in% top_female_leader_noc) |>
-  left_join(gdp_df, by = "noc")
-
-top_female_leader_gdp
 ```
 
 ## Data Summaries
@@ -124,39 +149,22 @@ top_female_leader_gdp
 ### \# Research Question: GDP For Top Countries With Most Female Leaders Over Time
 
 ```{r}
-
-# Female Leader Summarie gibberish
-female_leader = is_female_monarch == TRUE | is_female_president == TRUE,
-# get top 10 countries with the most female leaders
-top_female_leader_countries <- democracy_data |>
-  group_by(country_name, noc) |>
+# Here are top 10 Female Leaders With some things summarized not very nicely but for your reference to do the data summaries or plots
+top_10_female_leaders_gdp <- democracy_gdp |>
+  filter(!is.na(gdp)) |>
+  group_by(country_name, country_code) |>
   summarize(
+    avg_gdp = mean(gdp),
     n_female_leaders = sum(female_leader, na.rm = TRUE),
     .groups = "drop"
   ) |>
   slice_max(n_female_leaders, n = 10, with_ties = FALSE)
 
-top_female_leader_countries
+top_10_female_leaders_gdp
+
+# Some things to consider: We have gdp per year per country, so if you want to do based on years, possible, if you want to do avgs or sums or plots or whatever, all the data is there. This is just the top 10 female leader countries with gdp info.
 
 
-```
-
-```{r}
-data_list <- top_female_leader_countries |>
-  map(get_gdp)
-
-gdp_df <- data_list |>
-  set_names(top_female_leader_countries) |>
-  bind_rows(
-    .id = "noc"
-  ) 
-
-gdp_df |> head()
-
-
-top_female_leader_gdp <- democracy_data |>
-  filter(noc %in% top_female_leader_countries) |>
-  left_join(gdp_df, by = "noc")
 ```
 
 ### #2 Research Question: ........
