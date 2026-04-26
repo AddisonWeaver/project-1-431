@@ -17,7 +17,7 @@ library(tidyverse)
 library(gt)
 library(broom)
 library(tibble)
-
+gdp_df<- read_csv("gdp_df.csv")
 democracy_unemp <- read_csv("democracy_and_unemploy.csv")
 democracy_gdp <- read_csv("democracy_and_gdp.csv")
 
