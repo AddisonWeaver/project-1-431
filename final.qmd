@@ -1,7 +1,9 @@
 ---
 title: "Final Deliverable"
 author: "Addie Weaver, Scarlet Kwan, Sophia Woodward"
-format: html
+format:
+  html:
+    theme: flatly
 editor: source
 embed-resources: true
 code-tools: true
@@ -92,7 +94,7 @@ gdp_change_table |>
   gt(caption = "Table 2. GDP Change Over Time for Countries with the Most Female Leadership") |>
   tab_header(
     title = md("**GDP Change Over Time for Countries with the Most Female Leadership**"),
-    subtitle = "First and last available GDP observations"
+    subtitle = "First and last years of available GDP data by country"
   ) |>
   cols_label(
     country_name = "Country",
@@ -114,48 +116,59 @@ gdp_change_table |>
     locations = cells_column_labels()
   ) |>
   tab_style(
-    style = cell_fill(color = "#EAF4F4"),
+    style = cell_fill(color = "#76B7B2"),
     locations = cells_body(columns = percent_change)
   )
 ```
 ```{r}
-ggplot(top_10_female_leaders_gdp, aes(x = years_with_female_leader, y = avg_gdp))+geom_point(position = position_jitter(width = 0.2, seed = 123))+geom_line(position = position_jitter(width = 0.2, seed = 123))+labs(title = "Top Countries with Female Leaders Average GDP", x="Total Number of Years With Female Leaders", y= "Average GDP")+theme_minimal()
+ggplot(top_10_female_leaders_gdp, 
+       aes(x = years_with_female_leader, y = avg_gdp)) +
+  
+  geom_point(
+    color = "#4E79A7",
+    size = 3,
+    position = position_jitter(width = 0.2, seed = 123)
+  ) +
+  
+  geom_line(
+    color = "#76B7B2",
+    linewidth = 1,
+    position = position_jitter(width = 0.2, seed = 123)
+  ) +
+  
+  scale_y_log10(labels = scales::label_dollar(scale_cut = scales::cut_short_scale())) +
+  
+  labs(
+    title = "Average GDP and Years of Female Leadership Among Top Countries",
+    subtitle = "Each point represents a country with high female leadership representation",
+    x = "Number of Years with Female National Leadership",
+    y = "Average GDP (log scale)",
+    alt = "Scatter plot with a connecting line showing the relationship between years of female leadership and average GDP for the top countries. GDP is displayed on a logarithmic scale."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(size = 10),
+    axis.title = element_text(face = "bold")
+  )
 ```
 
 ```{r}
 ggplot(gdp_change_table, 
        aes(y = reorder(country_name, last_gdp))) +
-  
-  # line connecting start and end
   geom_segment(
-    aes(x = first_gdp, xend = last_gdp, 
-        yend = country_name),
-    color = "gray50",
-    linewidth = 1
-  ) +
-  
+    aes(x = first_gdp, xend = last_gdp, yend = country_name), color = "gray50",linewidth = 1) +
   # starting GDP point
-  geom_point(
-    aes(x = first_gdp),
-    color = "#1F77B4",
-    size = 3
-  ) +
-  
+  geom_point(aes(x = first_gdp), color = "#4E79A7", size = 3) +
   # ending GDP point
-  geom_point(
-    aes(x = last_gdp),
-    color = "#D62728",
-    size = 3
-  ) +
-  
-  scale_x_log10(labels = scales::dollar_format()) +
-  
+  geom_point(aes(x = last_gdp), color = "#76B7B2", size = 3) +
+  scale_x_log10(labels = label_dollar()) +
   labs(
     title = "Change in GDP from First to Last Observation",
     subtitle = "Countries with the Most Female Leadership",
     x = "GDP (log scale)",
     y = "Country",
-    alt = "Dumbbell plot comparing first and last GDP values for countries with the most female leadership. Each country has two points connected by a line showing change over time."
+    alt = "Popsicle plot comparing first and last GDP values for countries with the most female leadership. Each country has two points connected by a line showing change over time."
   ) +
   
   theme_minimal() +
