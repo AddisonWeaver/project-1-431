@@ -1,6 +1,6 @@
 ---
 title: "Final Deliverable"
-author: "Addie Weaver, Scarlet Kwan, Sophia Woodward"
+author: "Addie Weaver, Scarlet Kwan, Sophia Woodard"
 format:
   html:
     theme: flatly
