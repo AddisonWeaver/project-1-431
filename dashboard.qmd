@@ -364,10 +364,14 @@ output$gdp_map <- renderLeaflet({
 ```
 :::
 
-## Row {height = 10%}
+## Row {height = 10%} 
+
 
 ::: {.card title="Explore GDP Over Time by Country"}
 ```{r}
+
+# found  this really great shiny + plotly package since we used plotly for our hong kong graph, we were able to reproduce it for shiny Heres the link i found of how to use it: https://shiny.posit.co/r/components/outputs/plot-plotly/
+
 selectInput(
   inputId  = "selected_country",
   label    = "Choose a country:",
@@ -397,12 +401,10 @@ output$country_gdp_plot <- renderPlotly({
       aes(x = year, y = gdp, text = paste0("Female leader\nYear: ", year)),
       color = "#4E79A7", size = 3, shape = 18
     ) +
-    labs(
-      title    = paste("GDP Over Time:", input$selected_country),
+    labs(title = paste("GDP Over Time:", input$selected_country),
       subtitle = "Diamond points indicate years with a female national leader",
-      x        = "Year",
-      y        = "GDP (Billions USD)"
-    ) +
+      x = "Year",
+      y = "GDP (Billions USD)") +
     theme_minimal()
 
   ggplotly(p, tooltip = c("x", "y", "text"))
