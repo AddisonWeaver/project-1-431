@@ -6,15 +6,16 @@ format:
     logo: "https://cdn-icons-png.flaticon.com/512/44/44386.png"
     nav-buttons:
       - icon: linkedin
-        href: https://www.linkedin.com/in/addison-weaver-6812aa313/
+        href: https://linkedin.com
         aria-label: LinkedIn
       - icon: instagram
-        href: https://www.instagram.com/addiegracew/
+        href: https://www.instagram.com/phiawoodard/
         aria-label: Instagram
       - icon: envelope
-        href: mailto:aweave10@calpoly.edu
+        href: mailto:smwoodar@calpoly.edu
         aria-label: Email
     scrolling: true
+server: shiny
 execute:
   echo: false
   warning: false
@@ -33,10 +34,19 @@ library(scales)
 library(leaflet)
 library(sf)
 library(dplyr)
+library(shiny)
 
 gdp_df           <- read_csv("gdp_df.csv")
 democracy_unemp  <- read_csv("democracy_and_unemploy.csv")
 democracy_gdp    <- read_csv("democracy_and_gdp.csv")
+
+countries       <- st_read("countries.geo.json", quiet = TRUE)
+gdp_latest      <- democracy_gdp |>
+  filter(year >= 1980, year <= 2000, !is.na(gdp))
+map_data        <- countries |>
+  left_join(gdp_latest, by = c("id" = "country_code"))
+map_data$log_gdp   <- log10(map_data$gdp)
+available_years    <- sort(unique(map_data$year[!is.na(map_data$year)]))
 ```
 
 # The Data Behind the Analysis
@@ -59,7 +69,7 @@ The analysis draws on two datasets covering 192 sovereign countries from 1950–
 
  Our first dataset was created by two economics researchers who were studying different governments and how they change over time. The purpose of this dataset was to be a resource for those interested in studying how different countries and political systems transition through the years. Additionally, the two researchers, Christian Bjørnskov and Martin Rode, when doing their own research, felt that the data available at the time was inadequate.
 
-The dataset includes information on 192 different sovereign countries and 16 other self-governed territories from the years 1950 to 2020 on each of these countries’ regime type, democratic status, leadership, elections, transfers of power, and their colonial history.
+The dataset includes information on 192 different sovereign countries and 16 other self-governed territories from the years 1950 to 2020 on each of these countries' regime type, democratic status, leadership, elections, transfers of power, and their colonial history.
 
 This dataset was an expansion on other collections of geopolitical data that the authors took and added more information to. The information included features of government, elections, leadership types, and more. When it came to our analysis for this data, it was incredibly helpful to have all this information because it gave us the ability to have an accurate list of all the sovereign countries and classify them into different categories based on regime, leader, and more. Additionally, it provided us with additional information that gave context to each of these countries.
 
@@ -299,55 +309,103 @@ bind_rows(tidy_model, model_stats) |>
 
 **The results of the linear regression model on the relationship between female leadership and GDP show that there is no statistically significant association between the two variables.** We decided to use GDP logged to reduce skewness that we saw in our original analysis through plotting. The model produced an F-statistic of 0.664 with a p-value of 0.416. Because this p-value is greater than 0.05, **we fail to reject the null hypothesis and conclude that there is no evidence that countries with female leaders have different GDP levels compared to those without female leaders.**
 
-Although the estimated coefficient for female leadership is positive, and 5.38 for normal log which suggests higher GDP in countries with female leaders by over 500%, this result is not statistically significant and should be interpreted with caution. The large standard error & R squared indicates that the estimate varies greatly, and **the model itself explains very little of the variation in GDP (R² = 0.002).** This means that ** female leadership alone is not a meaningful predictor of economic GDP in this analysis**. Additionally, a substantial number of observations were dropped due to missing data in both gender leadership and GDP, which may further limit the reliability and generalizability of these results.
+Although the estimated coefficient for female leadership is positive, and 5.38 for normal log which suggests higher GDP in countries with female leaders by over 500%, this result is not statistically significant and should be interpreted with caution. The large standard error & R squared indicates that the estimate varies greatly, and **the model itself explains very little of the variation in GDP (R² = 0.002).** This means that **female leadership alone is not a meaningful predictor of economic GDP in this analysis**. Additionally, a substantial number of observations were dropped due to missing data in both gender leadership and GDP, which may further limit the reliability and generalizability of these results.
 
 :::
 
 ### Column
-
-```{r}
-#| include: false
-countries <- st_read("countries.geo.json")
-
-
-gdp_latest <- democracy_gdp |>
-  group_by(country_code)|> 
-  filter(year == max(year, na.rm = TRUE))|>
-  ungroup()|> filter(!is.na(gdp))
-
-joined_gdp <- countries |> left_join(gdp_latest, by = c("id"="country_code"))
-joined_gdp$log_gdp <- log10(joined_gdp$gdp)
-
-color <- colorNumeric(
-  palette = "Blues",
-  domain = joined_gdp$log_gdp,
-  na.color = "#cccccc"
-)
-```
-
-
 ::: {.card title="Logged GDP Per Country On World Map"}
 ```{r}
+selectInput(
+  inputId  = "map_year",
+  label    = "Choose a year:",
+  choices  = available_years,
+  selected = max(available_years, na.rm = TRUE)
+)
 
-leaflet(joined_gdp) |>
-  addTiles() |>
-  addPolygons(
-    fillColor = ~color(log_gdp),
-    fillOpacity = 0.85,
-    color = "white",
-    weight = 0.5,
-     popup = ~paste0(
-      "<strong>", country_name, "</strong><br>",
-      "GDP: $", format(gdp, big.mark = ",")
-    )
-  ) |>
-  addLegend(
-    pal = color,
-    values = ~log_gdp,
-    title = "GDP (log scale)",
-    opacity = 0.85
-  )|> setView(lng = 0, lat = 20, zoom = 2)
+leafletOutput("gdp_map", height = 500)
+```
 
+```{r}
+#| context: server
+output$gdp_map <- renderLeaflet({
+
+  joined_gdp <- map_data |>
+    filter(year == input$map_year)
+
+  color <- colorNumeric(
+    palette  = "Blues",
+    domain   = joined_gdp$log_gdp,
+    na.color = "#cccccc"
+  )
+
+  leaflet(joined_gdp) |>
+    addTiles() |>
+    addPolygons(
+      fillColor   = ~color(log_gdp),
+      fillOpacity = 0.85,
+      color       = "white",
+      weight      = 0.5,
+      popup       = ~paste0(
+        "<strong>", country_name, "</strong><br>",
+        "Year: ", year, "<br>",
+        "GDP: $", format(gdp, big.mark = ",")
+      )
+    ) |>
+    addLegend(
+      pal     = color,
+      values  = ~log_gdp,
+      title   = "GDP (log scale)",
+      opacity = 0.85
+    ) |>
+    setView(lng = 0, lat = 20, zoom = 2)
+
+})
+```
+:::
+
+## Row {height = 15%}
+
+::: {.card title="Explore GDP Over Time by Country"}
+```{r}
+selectInput(
+  inputId  = "selected_country",
+  label    = "Choose a country:",
+  choices  = sort(unique(democracy_gdp$country_name[!is.na(democracy_gdp$gdp)])),
+  selected = "Hong Kong"
+)
+
+plotlyOutput("country_gdp_plot", height = 350)
+```
+
+```{r}
+#| context: server
+output$country_gdp_plot <- renderPlotly({
+
+  country_data <- democracy_gdp |>
+    filter(country_name == input$selected_country, !is.na(gdp)) |>
+    arrange(year)
+
+  female_years <- country_data |> filter(female_leader == TRUE)
+
+  p <- ggplot(country_data, aes(x = year, y = gdp)) +
+    geom_line(color = "#76B7B2", linewidth = 1) +
+    geom_point(color = "#76B7B2", size = 2) +
+    geom_point(
+      data  = female_years,
+      aes(x = year, y = gdp, text = paste0("Female leader\nYear: ", year)),
+      color = "#4E79A7", size = 3, shape = 18
+    ) +
+    labs(
+      title    = paste("GDP Over Time:", input$selected_country),
+      subtitle = "Diamond points indicate years with a female national leader",
+      x        = "Year",
+      y        = "GDP (Billions USD)"
+    ) +
+    theme_minimal()
+
+  ggplotly(p, tooltip = c("x", "y", "text"))
+})
 ```
 :::
 
@@ -368,7 +426,7 @@ Overall, the analysis of the top countries with the most years of female nationa
 ## Row {height = 25%}
 
 ::: {.card title="Exploring GDP For Hong Kong"}
-```{r} 
+```{r}
 hk_data <- democracy_gdp |>
   filter(country_name == "Hong Kong", !is.na(gdp)) |>
   arrange(year)
@@ -383,11 +441,12 @@ p <- ggplot(hk_data, aes(x = year, y = gdp)) +
   labs(title = "GDP in Hong Kong Over Time",
        x = "Year", y = "GDP (Billions USD)") +
   theme_minimal()
-#scarlet's
+
 ggplotly(p)
 ```
 :::
+
 ::: {.card title="Why Did We Pick Hong Kong?"}
-We chose to look into Hong Kong because it had an unusually high GDP growth compared to most of the other countries we had data on. We also know that Hong Kong went through regime changes during this time period, being under British rule and then becoming a special administrative region afterwards, we we wanted to look into Hong Kong's GDP growth over time to see whether regime changes could be a factor this large growth in GDP.
+We chose to look into Hong Kong because it had an unusually high GDP growth compared to most of the other countries we had data on. We also know that Hong Kong went through regime changes during this time period, being under British rule and then becoming a special administrative region afterwards, so we wanted to look into Hong Kong's GDP growth over time to see whether regime changes could be a factor in this large growth in GDP.
 :::
 
