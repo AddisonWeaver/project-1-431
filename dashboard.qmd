@@ -6,13 +6,13 @@ format:
     logo: "https://cdn-icons-png.flaticon.com/512/44/44386.png"
     nav-buttons:
       - icon: linkedin
-        href: https://linkedin.com
+        href: https://www.linkedin.com/in/addison-weaver-6812aa313/
         aria-label: LinkedIn
       - icon: instagram
-        href: https://www.instagram.com/phiawoodard/
+        href: https://www.instagram.com/addiegracew/
         aria-label: Instagram
       - icon: envelope
-        href: mailto:smwoodar@calpoly.edu
+        href: mailto:aweave10@calpoly.edu
         aria-label: Email
     scrolling: true
 server: shiny
@@ -364,7 +364,7 @@ output$gdp_map <- renderLeaflet({
 ```
 :::
 
-## Row {height = 15%}
+## Row {height = 10%}
 
 ::: {.card title="Explore GDP Over Time by Country"}
 ```{r}
@@ -386,7 +386,8 @@ output$country_gdp_plot <- renderPlotly({
     filter(country_name == input$selected_country, !is.na(gdp)) |>
     arrange(year)
 
-  female_years <- country_data |> filter(female_leader == TRUE)
+  female_years <- country_data |> 
+    filter(female_leader == TRUE)
 
   p <- ggplot(country_data, aes(x = year, y = gdp)) +
     geom_line(color = "#76B7B2", linewidth = 1) +
@@ -409,16 +410,17 @@ output$country_gdp_plot <- renderPlotly({
 ```
 :::
 
+::: {.card title="Why Explore by Country?"}
+The country GDP explorer lets you investigate how economic output has changed over time for any country in our dataset. Diamond-shaped points highlight years when a female national leader was in office, allowing you to visually compare GDP trajectories during periods of female versus non-female leadership. Try selecting countries from the top female leadership list above!
+:::
 
-## Row {height= 20%}
+## Row {height= 15%}
 <div style="text-align: center; font-size: 1.2rem;">
 
 **Conclusion: What We Found**
 
 </div>
 Overall, the analysis of the top countries with the most years of female national leadership shows that **GDP increased over time for all of these countries, although the magnitude of growth varied widely**. The tables and visualizations for these top countries indicate that similar lengths of female leadership are associated with very different GDP levels and growth patterns, **suggesting no clear relationship within this subset**. When expanding the analysis to all countries using the regression model, there is also **no statistically significant association between female leadership and logged GDP, and the model explains very little of the variation in GDP**. These results suggest that while GDP has generally increased over time, there is **no consistent evidence from either the top-country analysis or the all countries with available gdp observations that female leadership alone is a strong predictor of economic outcomes**.
-
-
 
 
 # Hong Kong Case Study
